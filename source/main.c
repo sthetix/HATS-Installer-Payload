@@ -35,7 +35,6 @@
 #define STAGING_PATH      "sd:/hats-staging"
 #define PAYLOAD_PATH      "sd:/payload.bin"
 #define CONFIG_PATH       "sd:/config/hats-tools/config.ini"
-#define LOG_PATH          "sd:/hats-install.log"
 #define ATMOSPHERE_PATH   "sd:/atmosphere"
 #define BOOTLOADER_PATH   "sd:/bootloader"
 #define SWITCH_PATH       "sd:/switch"
@@ -133,11 +132,11 @@ static void print_result(const char *action, int result) {
     if (result == 0) {
         set_color(COLOR_GREEN);
         gfx_printf("[OK] %s\n", action);
-        log_write("[OK] %s\n", action);
+        // log_write("[OK] %s\n", action);
     } else {
         set_color(COLOR_RED);
         gfx_printf("[FAIL] %s (err=%d)\n", action, result);
-        log_write("[FAIL] %s - Error %d: %s\n", action, result, fs_error_str(result));
+        // log_write("[FAIL] %s - Error %d: %s\n", action, result, fs_error_str(result));
         total_errors++;
     }
     set_color(COLOR_WHITE);
@@ -214,14 +213,14 @@ static void parse_config(void) {
     link_t config_list;
     list_init(&config_list);
 
-    log_write("\n--- Parsing config ---\n");
+    // log_write("\n--- Parsing config ---\n");
 
     if (!ini_parse(&config_list, (char *)CONFIG_PATH, false)) {
         set_color(COLOR_ORANGE);
         gfx_printf("No config found, using [default] mode\n");
         set_color(COLOR_WHITE);
-        log_write("Config not found: %s\n", CONFIG_PATH);
-        log_write("Using default mode\n");
+        // log_write("Config not found: %s\n", CONFIG_PATH);
+        // log_write("Using default mode\n");
         install_mode = MODE_DEFAULT;
         return;
     }
@@ -241,7 +240,7 @@ static void parse_config(void) {
                             set_color(COLOR_CYAN);
                             gfx_printf("Config mode: [%s]\n", mode_names[i]);
                             set_color(COLOR_WHITE);
-                            log_write("Mode set to: %s\n", mode_names[i]);
+                            // log_write("Mode set to: %s\n", mode_names[i]);
                             goto cleanup;
                         }
                     }
@@ -257,7 +256,7 @@ static void parse_config(void) {
     set_color(COLOR_ORANGE);
     gfx_printf("No valid mode in config, using [default]\n");
     set_color(COLOR_WHITE);
-    log_write("No valid mode found, using default\n");
+    // log_write("No valid mode found, using default\n");
     install_mode = MODE_DEFAULT;
 
 cleanup:
@@ -286,11 +285,11 @@ static void delete_hats_txt(void) {
     int res;
     int found = 0;
 
-    log_write("\n--- Deleting HATS-*.txt ---\n");
+    // log_write("\n--- Deleting HATS-*.txt ---\n");
 
     res = f_opendir(&dir, "sd:/");
     if (res != FR_OK) {
-        log_write("Could not open root dir: %s\n", fs_error_str(res));
+        // log_write("Could not open root dir: %s\n", fs_error_str(res));
         return;
     }
 
@@ -307,17 +306,17 @@ static void delete_hats_txt(void) {
             if (len > 4 && strcmp(fno.fname + len - 4, ".txt") == 0) {
                 char path[64];
                 s_printf(path, "sd:/%s", fno.fname);
-                log_write("Found: %s\n", fno.fname);
+                // log_write("Found: %s\n", fno.fname);
                 res = f_unlink(path);
                 if (res == FR_OK) {
                     set_color(COLOR_GREEN);
                     gfx_printf("  Deleted: %s\n", fno.fname);
-                    log_write("  Deleted OK\n");
+                    // log_write("  Deleted OK\n");
                     found++;
                 } else {
                     set_color(COLOR_RED);
                     gfx_printf("  Failed: %s\n", fno.fname);
-                    log_write("  ERROR: %s\n", fs_error_str(res));
+                    // log_write("  ERROR: %s\n", fs_error_str(res));
                     total_errors++;
                 }
                 set_color(COLOR_WHITE);
@@ -331,7 +330,7 @@ static void delete_hats_txt(void) {
         set_color(COLOR_ORANGE);
         gfx_printf("  No HATS-*.txt found\n");
         set_color(COLOR_WHITE);
-        log_write("No HATS-*.txt found\n");
+        // log_write("No HATS-*.txt found\n");
     }
 }
 
@@ -383,13 +382,13 @@ static int copy_staging_contents(void) {
     int last_percent = -1;
     u32 prog_start_x, prog_start_y;
 
-    log_write("\n--- Copying staging contents ---\n");
+    // log_write("\n--- Copying staging contents ---\n");
 
     // First, count total items
     res = f_opendir(&dir, STAGING_PATH);
     if (res != FR_OK) {
         gfx_printf("  ERROR: Cannot open staging\n");
-        log_write("ERROR: Cannot open staging dir: %s\n", fs_error_str(res));
+        // log_write("ERROR: Cannot open staging dir: %s\n", fs_error_str(res));
         return res;
     }
 
@@ -412,7 +411,7 @@ static int copy_staging_contents(void) {
     res = f_opendir(&dir, STAGING_PATH);
     if (res != FR_OK) {
         gfx_printf("\n  ERROR: Cannot open staging\n");
-        log_write("ERROR: Cannot open staging dir: %s\n", fs_error_str(res));
+        // log_write("ERROR: Cannot open staging dir: %s\n", fs_error_str(res));
         return res;
     }
 
@@ -425,7 +424,7 @@ static int copy_staging_contents(void) {
         s_printf(src_path, "%s/%s", STAGING_PATH, fno.fname);
         s_printf(dst_path, "sd:/%s", fno.fname);
 
-        log_write("Copying: %s\n", fno.fname);
+        // log_write("Copying: %s\n", fno.fname);
 
         if (fno.fattrib & AM_DIR) {
             res = folder_copy(src_path, "sd:/");
@@ -436,7 +435,7 @@ static int copy_staging_contents(void) {
         if (res != FR_OK) {
             set_color(COLOR_RED);
             gfx_printf("\n  ERROR: %s\n", fno.fname);
-            log_write("ERROR copying %s: %s\n", fno.fname, fs_error_str(res));
+            // log_write("ERROR copying %s: %s\n", fno.fname, fs_error_str(res));
             set_color(COLOR_WHITE);
             total_errors++;
         } else {
@@ -456,7 +455,7 @@ static int copy_staging_contents(void) {
     set_color(COLOR_GREEN);
     gfx_printf("\n  Done! %d/%d items copied\n", copied, total);
     set_color(COLOR_WHITE);
-    log_write("Total: %d/%d items copied\n", copied, total);
+    // log_write("Total: %d/%d items copied\n", copied, total);
 
     return (copied == total) ? FR_OK : FR_DISK_ERR;
 }
@@ -468,13 +467,13 @@ static void do_install(void) {
     set_color(COLOR_YELLOW);
     gfx_printf("Step 1: Cleanup (mode: [%s])...\n", mode_names[install_mode]);
     set_color(COLOR_WHITE);
-    log_write("\n--- Step 1: Cleanup (mode: %s) ---\n", mode_names[install_mode]);
+    // log_write("\n--- Step 1: Cleanup (mode: %s) ---\n", mode_names[install_mode]);
 
     if (install_mode == MODE_REPLACE) {
         set_color(COLOR_CYAN);
         gfx_printf("  Mode: replace - skipping deletions\n");
         set_color(COLOR_WHITE);
-        log_write("Replace mode: no deletions\n");
+        // log_write("Replace mode: no deletions\n");
     } else {
         // Delete atmosphere (both default and clean modes)
         if (file_exists(ATMOSPHERE_PATH)) {
@@ -485,7 +484,7 @@ static void do_install(void) {
             set_color(COLOR_ORANGE);
             gfx_printf("  [SKIP] /atmosphere\n");
             set_color(COLOR_WHITE);
-            log_write("[SKIP] /atmosphere not found\n");
+            // log_write("[SKIP] /atmosphere not found\n");
         }
 
         // Clean mode also deletes bootloader and switch
@@ -498,7 +497,7 @@ static void do_install(void) {
                 set_color(COLOR_ORANGE);
                 gfx_printf("  [SKIP] /bootloader\n");
                 set_color(COLOR_WHITE);
-                log_write("[SKIP] /bootloader not found\n");
+                // log_write("[SKIP] /bootloader not found\n");
             }
 
             if (file_exists(SWITCH_PATH)) {
@@ -509,7 +508,7 @@ static void do_install(void) {
                 set_color(COLOR_ORANGE);
                 gfx_printf("  [SKIP] /switch\n");
                 set_color(COLOR_WHITE);
-                log_write("[SKIP] /switch not found\n");
+                // log_write("[SKIP] /switch not found\n");
             }
         }
     }
@@ -518,14 +517,14 @@ static void do_install(void) {
     set_color(COLOR_YELLOW);
     gfx_printf("\nStep 2: Removing HATS version file...\n");
     set_color(COLOR_WHITE);
-    log_write("\n--- Step 2: Removing HATS version file ---\n");
+    // log_write("\n--- Step 2: Removing HATS version file ---\n");
     delete_hats_txt();
 
     // Step 3: Copy everything from staging to root
     set_color(COLOR_YELLOW);
     gfx_printf("\nStep 3: Copying from staging...\n");
     set_color(COLOR_WHITE);
-    log_write("\n--- Step 3: Copying from staging ---\n");
+    // log_write("\n--- Step 3: Copying from staging ---\n");
 
     copy_staging_contents();
 
@@ -533,30 +532,29 @@ static void do_install(void) {
     set_color(COLOR_YELLOW);
     gfx_printf("\nStep 4: Cleaning up staging folder...\n");
     set_color(COLOR_WHITE);
-    log_write("\n--- Step 4: Cleaning up staging folder ---\n");
+    // log_write("\n--- Step 4: Cleaning up staging folder ---\n");
 
     res = folder_delete(STAGING_PATH);
     print_result("staging", res);
 
     // Summary
     gfx_printf("\n");
-    log_write("\n--- Summary ---\n");
+    // log_write("\n--- Summary ---\n");
     if (total_errors == 0) {
         set_color(COLOR_GREEN);
         gfx_printf("========================================\n");
         gfx_printf("    Installation Complete!\n");
         gfx_printf("========================================\n");
-        log_write("Installation completed successfully!\n");
+        // log_write("Installation completed successfully!\n");
     } else {
         set_color(COLOR_RED);
         gfx_printf("========================================\n");
         gfx_printf("    Installation Finished\n");
-        gfx_printf("    %d error(s) - check log file\n", total_errors);
+        gfx_printf("    %d error(s)\n", total_errors);
         gfx_printf("========================================\n");
-        log_write("Installation finished with %d error(s)\n", total_errors);
+        // log_write("Installation finished with %d error(s)\n", total_errors);
     }
     set_color(COLOR_WHITE);
-    gfx_printf("\nLog saved to: %s\n", LOG_PATH);
 }
 
 extern void pivot_stack(u32 stack_top);
@@ -576,8 +574,8 @@ void ipl_main(void) {
         power_set_state(POWER_OFF_REBOOT);
     }
 
-    // Initialize log file
-    log_init(LOG_PATH);
+    // Logging disabled
+    // log_init(LOG_PATH);
 
     // Initialize minerva for faster memory
     minerva_init();
@@ -605,8 +603,8 @@ void ipl_main(void) {
         gfx_printf("No staging directory found!\n");
         gfx_printf("%s\n\n", STAGING_PATH);
         set_color(COLOR_WHITE);
-        log_write("ERROR: Staging directory not found: %s\n", STAGING_PATH);
-        log_close();
+        // log_write("ERROR: Staging directory not found: %s\n", STAGING_PATH);
+        // log_close();
 
         // Launch payload if available
         if (file_exists(PAYLOAD_PATH)) {
@@ -624,13 +622,13 @@ void ipl_main(void) {
     set_color(COLOR_GREEN);
     gfx_printf("Staging found! Starting install...\n\n");
     set_color(COLOR_WHITE);
-    log_write("Staging directory found\n");
+    // log_write("Staging directory found\n");
 
     // Perform the installation
     do_install();
 
-    // Close log
-    log_close();
+    // Logging disabled
+    // log_close();
 
     // Launch payload after installation
     gfx_printf("\nLaunching payload in 3 seconds...\n");
