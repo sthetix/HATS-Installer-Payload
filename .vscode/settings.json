@@ -1,0 +1,17 @@
+{
+  "claudeCode.disableLoginPrompt": false,
+  "claudeCode.environmentVariables": [
+    {
+      "name": "ANTHROPIC_BASE_URL",
+      "value": "https://api.z.ai/api/anthropic"
+    },
+    {
+      "name": "ANTHROPIC_AUTH_TOKEN",
+      "value": "caceb12fd1a740c68631842764f1b38a.kBX5z6hfW95z8QHj"
+    },
+    {
+      "name": "CLAUDE_CODE_SKIP_AUTH_LOGIN",
+      "value": "true"
+    }
+  ]
+}
