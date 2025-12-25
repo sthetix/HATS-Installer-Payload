@@ -17,3 +17,6 @@ release/
 Thumbs.db
 .claude
 
+# Version file is tracked, ignore local edits
+# VERSION
+

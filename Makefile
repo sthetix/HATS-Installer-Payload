@@ -9,6 +9,7 @@ include $(DEVKITARM)/base_rules
 ################################################################################
 
 IPL_LOAD_ADDR := 0x40008000
+VERSION := $(shell cat VERSION)
 
 ################################################################################
 
@@ -36,6 +37,7 @@ FFCFG_INC := '"../$(SOURCEDIR)/libs/fatfs/ffconf.h"'
 
 CUSTOMDEFINES := -DIPL_LOAD_ADDR=$(IPL_LOAD_ADDR)
 CUSTOMDEFINES += -DGFX_INC=$(GFX_INC) -DFFCFG_INC=$(FFCFG_INC)
+CUSTOMDEFINES += -DVERSION='"$(VERSION)"'
 
 ARCH := -march=armv4t -mtune=arm7tdmi -mthumb -mthumb-interwork
 CFLAGS = $(ARCH) -Os -nostdlib -ffunction-sections -fdata-sections -fomit-frame-pointer -fno-inline -std=gnu11 -Wall -Wno-missing-braces $(CUSTOMDEFINES)
@@ -54,7 +56,7 @@ clean:
 	@rm -rf $(BUILDDIR)
 	@rm -rf $(OUTPUTDIR)
 	@rm -rf release
-	@rm -f $(TARGET).zip
+	@rm -f $(TARGET)-*.zip
 
 $(OUTPUTDIR)/$(TARGET).bin: $(BUILDDIR)/$(TARGET)/$(TARGET).elf
 	@mkdir -p "$(@D)"
@@ -82,5 +84,5 @@ $(BUILDDIR)/$(TARGET)/%.o: $(BDKDIR)/%.S
 release: $(OUTPUTDIR)/$(TARGET).bin
 	@mkdir -p release/bootloader/payloads
 	@cp $(OUTPUTDIR)/$(TARGET).bin release/bootloader/payloads/hats-installer.bin
-	@cd release && zip -r ../$(TARGET).zip bootloader
-	@echo "Release package created: $(TARGET).zip"
+	@cd release && zip -r ../$(TARGET)-$(VERSION).zip bootloader
+	@echo "Release package created: $(TARGET)-$(VERSION).zip"

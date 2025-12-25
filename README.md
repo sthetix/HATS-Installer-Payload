@@ -1,4 +1,4 @@
-# HATS Installer Payload
+# HATS Installer Payload v1.0.0
 
 A minimal payload for installing HATS (Homebrew App Tools & Store) packs on Nintendo Switch outside of Horizon OS.
 
