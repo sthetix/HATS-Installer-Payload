@@ -117,3 +117,11 @@ This project is based on TegraExplorer and hekate. Please refer to those project
 - **CTCaer** - [hekate](https://github.com/CTCaer/hekate)
 - **naehrwert** - Tegra exploration work
 - **shchmue** - [TegraExplorer](https://github.com/shchmue/TegraExplorer)
+
+## Support My Work
+
+If you find this project useful, please consider supporting me by buying me a coffee!
+
+<a href="https://www.buymeacoffee.com/sthetixofficial" target="_blank">
+  <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" >
+</a>
