@@ -5,6 +5,10 @@
  * Based on TegraExplorer/hekate by CTCaer, naehrwert, shchmue
  */
 
+#ifndef VERSION
+#define VERSION "1.0.0"
+#endif
+
 #include <string.h>
 
 #include <utils/ini.h>
@@ -120,7 +124,7 @@ static void print_header(void) {
     gfx_con_setpos(0, 0);
     set_color(COLOR_CYAN);
     gfx_printf("========================================\n");
-    gfx_printf("        HATS Installer Payload\n");
+    gfx_printf("    HATS Installer Payload v%s\n", VERSION);
     gfx_printf("========================================\n\n");
     set_color(COLOR_WHITE);
 }
