@@ -1,4 +1,4 @@
-# HATS Installer Payload v1.0.0
+# HATS Installer Payload
 
 A minimal payload for installing HATS (Homebrew App Tools & Store) packs on Nintendo Switch outside of Horizon OS.
 
@@ -6,9 +6,9 @@ Based on [TegraExplorer](https://github.com/shchmue/TegraExplorer) and [hekate](
 
 ## Features
 
-- **Three Installation Modes**: Choose how your HATS pack is installed
+- **Four Installation Modes**: Choose how your HATS pack is installed
 - **Progress Display**: Visual progress bars and status messages
-- **Error Logging**: Detailed logs written to `sd:/hats-install.log`
+- **Error Handling**: Detailed error reporting on screen
 - **Payload Chaining**: Automatically launch another payload after installation
 - **Minimal Footprint**: Small payload size for fast loading
 
@@ -16,9 +16,10 @@ Based on [TegraExplorer](https://github.com/shchmue/TegraExplorer) and [hekate](
 
 | Mode | Description |
 |------|-------------|
-| `replace` | Only replaces files - no deletion (old files may remain) |
-| `default` | Deletes `/atmosphere` only, keeps `/bootloader` and `/switch` |
-| `clean` | Deletes `/atmosphere`, `/bootloader`, and `/switch` (fresh install) |
+| `overwrite` | Overwrite files only - no deletions (safest for game cheats) |
+| `replace_ams` | Delete `/atmosphere` only |
+| `replace_ams_bl` | Delete `/atmosphere` and `/bootloader` |
+| `clean` | Delete `/atmosphere`, `/bootloader`, and `/switch` (fresh install) |
 
 ## Building
 
@@ -56,7 +57,7 @@ Create `sd:/config/hats-tools/config.ini` to set the installation mode:
 
 ```ini
 [hats]
-install_mode=default
+install_mode=overwrite
 ```
 
 ### 3. Launch
@@ -79,7 +80,7 @@ The payload reads configuration from `sd:/config/hats-tools/config.ini`:
 
 ```ini
 [hats]
-install_mode=default    ; Options: replace, default, clean
+install_mode=overwrite    ; Options: overwrite, replace_ams, replace_ams_bl, clean
 ```
 
 ## Project Structure
@@ -97,14 +98,10 @@ hats-payload/
 └── build/            # Build output directory
 ```
 
-## Logs
-
-Installation logs are written to `sd:/hats-install.log` for troubleshooting.
-
 ## Integration
 
 This payload is part of the HATS ecosystem:
-- Works with HATS-Updater for automated updates
+- Works with HATS-Tools GUI for easy installation
 - Handles `manifest.json` for version tracking
 - Integrates with the HATS pack distribution system
 
