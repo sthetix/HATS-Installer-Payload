@@ -39,9 +39,9 @@ The built payload will be output to `build/hats-installer/hats-installer.bin`.
 
 ## Usage
 
-### 1. Prepare Files
+### 1. Extract HATS Pack to SD Card
 
-Place your HATS pack files on the SD card:
+Extract the HATS pack zip file directly to your SD card. The zip should contain:
 
 ```
 sd:/hats-staging/
@@ -50,6 +50,8 @@ sd:/hats-staging/
 ├── switch/
 └── manifest.json
 ```
+
+**Important**: Extract both the HATS pack zip AND this payload zip to your SD card.
 
 ### 2. Configure (Optional)
 
@@ -60,9 +62,16 @@ Create `sd:/config/hats-tools/config.ini` to set the installation mode:
 install_mode=overwrite
 ```
 
-### 3. Launch
+### 3. Launch Payload
 
-Use hekate or another bootloader to launch `hats-installer.bin`.
+Use **[HATS-Tools](https://github.com/sthetix/HATS-Tools)** to launch this payload:
+
+1. Extract the HATS-Tools zip to your SD card
+2. Run HATS-Tools from your Switch
+3. Select this payload from the payload menu
+4. The payload will automatically install your HATS pack
+
+Alternatively, you can use hekate or another bootloader to launch the payload directly.
 
 ### 4. What Happens
 
