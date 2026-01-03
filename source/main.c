@@ -6,7 +6,7 @@
  */
 
 #ifndef VERSION
-#define VERSION "1.0.0"
+#define VERSION "1.0.1"
 #endif
 
 #include <string.h>
@@ -41,14 +41,16 @@
 
 // Install modes
 typedef enum {
-    MODE_REPLACE = 0,  // Only replace, no deletion
-    MODE_DEFAULT = 1,  // Delete atmosphere only
-    MODE_CLEAN   = 2   // Delete atmosphere, bootloader, switch
+    MODE_OVERWRITE     = 0,  // Only overwrite, no deletion
+    MODE_REPLACE_AMS   = 1,  // Delete atmosphere only
+    MODE_REPLACE_AMS_BL= 2,  // Delete atmosphere and bootloader
+    MODE_CLEAN         = 3   // Delete atmosphere, bootloader, switch
 } install_mode_t;
 
 static const char *mode_names[] = {
-    "replace",
-    "default",
+    "overwrite",
+    "replace_ams",
+    "replace_ams_bl",
     "clean"
 };
 
@@ -88,7 +90,7 @@ volatile nyx_storage_t *nyx_str = (nyx_storage_t *)NYX_STORAGE_ADDR;
 
 static void *coreboot_addr;
 static int total_errors = 0;
-static install_mode_t install_mode = MODE_DEFAULT;  // Default to [default] mode
+static install_mode_t install_mode = MODE_OVERWRITE;  // Default to [overwrite] mode (safest)
 
 // Use BDK colors (already defined in types.h)
 #define COLOR_CYAN    0xFF00FFFF
@@ -217,24 +219,24 @@ static void parse_config(void) {
 
     if (!ini_parse(&config_list, (char *)CONFIG_PATH, false)) {
         set_color(COLOR_ORANGE);
-        gfx_printf("No config found, using [default] mode\n");
+        gfx_printf("No config found, using [overwrite] mode\n");
         set_color(COLOR_WHITE);
         // log_write("Config not found: %s\n", CONFIG_PATH);
         // log_write("Using default mode\n");
-        install_mode = MODE_DEFAULT;
+        install_mode = MODE_OVERWRITE;
         return;
     }
 
-    // Look for [hats] section and install_mode key
+    // Look for [installer] section and install_mode key
     LIST_FOREACH_ENTRY(ini_sec_t, sec, &config_list, link) {
         if (sec->type != INI_CHOICE)
             continue;
 
-        if (strcmp(sec->name, "hats") == 0) {
+        if (strcmp(sec->name, "installer") == 0) {
             LIST_FOREACH_ENTRY(ini_kv_t, kv, &sec->kvs, link) {
                 if (strcmp(kv->key, "install_mode") == 0) {
                     // Parse the value
-                    for (int i = 0; i < 3; i++) {
+                    for (int i = 0; i < 4; i++) {
                         if (strcmp(kv->val, mode_names[i]) == 0) {
                             install_mode = (install_mode_t)i;
                             set_color(COLOR_CYAN);
@@ -248,16 +250,16 @@ static void parse_config(void) {
                     break;
                 }
             }
-            // Found [hats] section but no valid install_mode
+            // Found [installer] section but no valid install_mode
             break;
         }
     }
 
     set_color(COLOR_ORANGE);
-    gfx_printf("No valid mode in config, using [default]\n");
+    gfx_printf("No valid mode in config, using [overwrite]\n");
     set_color(COLOR_WHITE);
     // log_write("No valid mode found, using default\n");
-    install_mode = MODE_DEFAULT;
+    install_mode = MODE_OVERWRITE;
 
 cleanup:
     // Free ini memory - iterate safely using manual approach
@@ -469,13 +471,13 @@ static void do_install(void) {
     set_color(COLOR_WHITE);
     // log_write("\n--- Step 1: Cleanup (mode: %s) ---\n", mode_names[install_mode]);
 
-    if (install_mode == MODE_REPLACE) {
+    if (install_mode == MODE_OVERWRITE) {
         set_color(COLOR_CYAN);
-        gfx_printf("  Mode: replace - skipping deletions\n");
+        gfx_printf("  Mode: overwrite - skipping deletions\n");
         set_color(COLOR_WHITE);
-        // log_write("Replace mode: no deletions\n");
+        // log_write("Overwrite mode: no deletions\n");
     } else {
-        // Delete atmosphere (both default and clean modes)
+        // Delete atmosphere (all modes except overwrite)
         if (file_exists(ATMOSPHERE_PATH)) {
             gfx_printf("  Deleting /atmosphere...\n");
             res = folder_delete(ATMOSPHERE_PATH);
@@ -487,8 +489,8 @@ static void do_install(void) {
             // log_write("[SKIP] /atmosphere not found\n");
         }
 
-        // Clean mode also deletes bootloader and switch
-        if (install_mode == MODE_CLEAN) {
+        // MODE_REPLACE_AMS_BL and MODE_CLEAN also delete bootloader
+        if (install_mode == MODE_REPLACE_AMS_BL || install_mode == MODE_CLEAN) {
             if (file_exists(BOOTLOADER_PATH)) {
                 gfx_printf("  Deleting /bootloader...\n");
                 res = folder_delete(BOOTLOADER_PATH);
@@ -499,7 +501,10 @@ static void do_install(void) {
                 set_color(COLOR_WHITE);
                 // log_write("[SKIP] /bootloader not found\n");
             }
+        }
 
+        // MODE_CLEAN also deletes switch
+        if (install_mode == MODE_CLEAN) {
             if (file_exists(SWITCH_PATH)) {
                 gfx_printf("  Deleting /switch...\n");
                 res = folder_delete(SWITCH_PATH);
