@@ -280,7 +280,7 @@ cleanup:
     }
 }
 
-// Find and delete HATS-DDMMYYYY-hash.txt file in root
+// Find and delete HATS-*.txt version file in root
 static void delete_hats_txt(void) {
     DIR dir;
     FILINFO fno;
