@@ -34,6 +34,7 @@
 // Configuration
 #define STAGING_PATH      "sd:/hats-staging"
 #define PAYLOAD_PATH      "sd:/payload.bin"
+#define PAYLOAD_BAK       "sd:/payload.bak"
 #define CONFIG_PATH       "sd:/config/hats-tools/config.ini"
 #define ATMOSPHERE_PATH   "sd:/atmosphere"
 #define BOOTLOADER_PATH   "sd:/bootloader"
@@ -208,6 +209,50 @@ static int launch_payload(const char *path) {
 static int file_exists(const char *path) {
     FILINFO fno;
     return (f_stat(path, &fno) == FR_OK);
+}
+
+// Restore original payload from backup (for HATS-Tools Mariko launch)
+// When launched from HATS-Tools, payload.bak contains the original hekate
+static void restore_original_payload(void) {
+    FIL fp_bak;
+    FIL fp_payload;
+    UINT bytes_read;
+    UINT bytes_written;
+    u8 *buf;
+
+    // Check if backup exists
+    if (f_open(&fp_bak, PAYLOAD_BAK, FA_READ) != FR_OK) {
+        // No backup = normal boot (not launched from HATS-Tools)
+        return;
+    }
+
+    // Get backup size
+    u32 bak_size = f_size(&fp_bak);
+
+    // Allocate buffer
+    buf = (u8 *)malloc(bak_size);
+    if (buf == NULL) {
+        f_close(&fp_bak);
+        return;
+    }
+
+    // Read backup
+    if (f_read(&fp_bak, buf, bak_size, &bytes_read) != FR_OK || bytes_read != bak_size) {
+        goto cleanup;
+    }
+    f_close(&fp_bak);
+
+    // Write original back to payload.bin
+    if (f_open(&fp_payload, PAYLOAD_PATH, FA_CREATE_ALWAYS | FA_WRITE) == FR_OK) {
+        if (f_write(&fp_payload, buf, bak_size, &bytes_written) == FR_OK && bytes_written == bak_size) {
+            // Success - delete backup after successful restore
+            f_unlink(PAYLOAD_BAK);
+        }
+        f_close(&fp_payload);
+    }
+
+cleanup:
+    free(buf);
 }
 
 // Parse config.ini to get install mode
@@ -578,6 +623,9 @@ void ipl_main(void) {
         // Can't show error without display, just reboot
         power_set_state(POWER_OFF_REBOOT);
     }
+
+    // STEP 1: Restore original payload FIRST (for HATS-Tools Mariko launch)
+    restore_original_payload();
 
     // Logging disabled
     // log_init(LOG_PATH);
