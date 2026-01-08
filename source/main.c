@@ -34,7 +34,8 @@
 // Configuration
 #define STAGING_PATH      "sd:/hats-staging"
 #define PAYLOAD_PATH      "sd:/payload.bin"
-#define PAYLOAD_BAK       "sd:/payload.bak"
+#define HEKATE_INI_BAK   "sd:/bootloader/hekate_ipl.ini.bak"
+#define HEKATE_INI       "sd:/bootloader/hekate_ipl.ini"
 #define CONFIG_PATH       "sd:/config/hats-tools/config.ini"
 #define ATMOSPHERE_PATH   "sd:/atmosphere"
 #define BOOTLOADER_PATH   "sd:/bootloader"
@@ -211,48 +212,105 @@ static int file_exists(const char *path) {
     return (f_stat(path, &fno) == FR_OK);
 }
 
-// Restore original payload from backup (for HATS-Tools Mariko launch)
-// When launched from HATS-Tools, payload.bak contains the original hekate
-static void restore_original_payload(void) {
+// Backup original hekate_ipl.ini and create temporary one for HATS autoboot
+static void setup_hekate_ini_backup(void) {
+    FIL fp_src;
     FIL fp_bak;
-    FIL fp_payload;
+    FIL fp_ini;
     UINT bytes_read;
     UINT bytes_written;
     u8 *buf;
 
-    // Check if backup exists
-    if (f_open(&fp_bak, PAYLOAD_BAK, FA_READ) != FR_OK) {
-        // No backup = normal boot (not launched from HATS-Tools)
-        return;
+    // 1. Backup original hekate_ipl.ini to .bak
+    if (f_open(&fp_src, HEKATE_INI, FA_READ) == FR_OK) {
+        u32 file_size = f_size(&fp_src);
+        buf = (u8 *)malloc(file_size);
+        if (buf) {
+            if (f_read(&fp_src, buf, file_size, &bytes_read) == FR_OK && bytes_read == file_size) {
+                f_close(&fp_src);
+                if (f_open(&fp_bak, HEKATE_INI_BAK, FA_CREATE_ALWAYS | FA_WRITE) == FR_OK) {
+                    f_write(&fp_bak, buf, file_size, &bytes_written);
+                    f_close(&fp_bak);
+                }
+                free(buf);
+            } else {
+                f_close(&fp_src);
+                free(buf);
+                buf = NULL;
+            }
+        } else {
+            f_close(&fp_src);
+        }
+    } else {
+        buf = NULL;
     }
 
-    // Get backup size
-    u32 bak_size = f_size(&fp_bak);
+    // 2. Create new temporary hekate_ipl.ini with HATS autoboot config
+    const char *temp_ini =
+        "[config]\n"
+        "autoboot=1\n"
+        "autoboot_list=0\n"
+        "bootwait=0\n"
+        "verification=1\n"
+        "backlight=100\n"
+        "autohosoff=2\n"
+        "autonogc=1\n"
+        "updater2p=1\n"
+        "\n"
+        "[HATS Installer]\n"
+        "payload=/bootloader/payloads/hats-installer.bin\n";
 
-    // Allocate buffer
+    if (f_open(&fp_ini, HEKATE_INI, FA_CREATE_ALWAYS | FA_WRITE) == FR_OK) {
+        u32 len = strlen(temp_ini);
+        f_write(&fp_ini, temp_ini, len, &bytes_written);
+        f_close(&fp_ini);
+    }
+}
+
+// Restore hekate_ipl.ini from backup (called after installation)
+static bool restore_hekate_ini(void) {
+    FIL fp_bak;
+    FIL fp_dst;
+    UINT bytes_read;
+    UINT bytes_written;
+    u8 *buf;
+
+    if (f_open(&fp_bak, HEKATE_INI_BAK, FA_READ) != FR_OK) {
+        return false;
+    }
+
+    u32 bak_size = f_size(&fp_bak);
+    if (bak_size == 0) {
+        f_close(&fp_bak);
+        f_unlink(HEKATE_INI_BAK);
+        return false;
+    }
+
     buf = (u8 *)malloc(bak_size);
     if (buf == NULL) {
         f_close(&fp_bak);
-        return;
+        return false;
     }
 
-    // Read backup
     if (f_read(&fp_bak, buf, bak_size, &bytes_read) != FR_OK || bytes_read != bak_size) {
-        goto cleanup;
+        f_close(&fp_bak);
+        free(buf);
+        return false;
     }
     f_close(&fp_bak);
 
-    // Write original back to payload.bin
-    if (f_open(&fp_payload, PAYLOAD_PATH, FA_CREATE_ALWAYS | FA_WRITE) == FR_OK) {
-        if (f_write(&fp_payload, buf, bak_size, &bytes_written) == FR_OK && bytes_written == bak_size) {
-            // Success - delete backup after successful restore
-            f_unlink(PAYLOAD_BAK);
+    // Overwrite hekate_ipl.ini with backup content
+    bool success = false;
+    if (f_open(&fp_dst, HEKATE_INI, FA_CREATE_ALWAYS | FA_WRITE) == FR_OK) {
+        if (f_write(&fp_dst, buf, bak_size, &bytes_written) == FR_OK && bytes_written == bak_size) {
+            success = true;
         }
-        f_close(&fp_payload);
+        f_close(&fp_dst);
     }
 
-cleanup:
     free(buf);
+    f_unlink(HEKATE_INI_BAK);
+    return success;
 }
 
 // Parse config.ini to get install mode
@@ -624,8 +682,8 @@ void ipl_main(void) {
         power_set_state(POWER_OFF_REBOOT);
     }
 
-    // STEP 1: Restore original payload FIRST (for HATS-Tools Mariko launch)
-    restore_original_payload();
+    // Backup original hekate_ipl.ini and create temporary config for HATS
+    setup_hekate_ini_backup();
 
     // Logging disabled
     // log_init(LOG_PATH);
@@ -679,6 +737,13 @@ void ipl_main(void) {
 
     // Perform the installation
     do_install();
+
+    // Restore hekate_ipl.ini from backup after installation completes
+    if (restore_hekate_ini()) {
+        set_color(COLOR_GREEN);
+        gfx_printf("\n[OK] hekate_ipl.ini restored\n");
+        set_color(COLOR_WHITE);
+    }
 
     // Logging disabled
     // log_close();
